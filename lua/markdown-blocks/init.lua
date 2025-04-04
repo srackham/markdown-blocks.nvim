@@ -1,6 +1,9 @@
 -- Place in ~/.config/nvim/init.lua or preferably in a dedicated lua file
 -- e.g., lua/custom/markdown_breaks.lua and require it: require('custom.markdown_breaks')
 
+-- Module initialisation
+local M = {}
+
 -- Helper function to get visual selection range safely
 local function get_visual_selection_range()
   local start_line = vim.fn.line("'<")
@@ -12,12 +15,12 @@ local function get_visual_selection_range()
   return start_line, end_line
 end
 
--- Function to ADD markdown line breaks to a range
+-- Function to add markdown line breaks to a range
 -- Adds the specified break_str to the end of each line in the range.
 ---@param start_line number Starting line number (1-based)
 ---@param end_line number Ending line number (1-based)
 ---@param break_str string|nil The string to append as a line break (defaults to ' \\')
-function markdown_add_line_breaks(start_line, end_line, break_str)
+function M.markdown_add_line_breaks(start_line, end_line, break_str)
   break_str = break_str or ' \\' -- Default break is space + backslash
 
   -- Escape characters special to Vim's substitute command replacement part
@@ -36,7 +39,7 @@ end
 -- Removes ' \', '<br>', '  ' (or more spaces) from the end of lines.
 ---@param start_line number Starting line number (1-based)
 ---@param end_line number Ending line number (1-based)
-function markdown_remove_line_breaks(start_line, end_line)
+function M.markdown_remove_line_breaks(start_line, end_line)
   local range = string.format("%d,%d", start_line, end_line)
 
   -- Use # as delimiter for substitute commands to avoid issues with '/' in <br>
@@ -53,7 +56,7 @@ end
 -- Toggle function - Decides whether to add or remove based on the first line
 -- This function will be called by the keymap
 ---@param break_str_to_add string|nil Optional break string to use when adding (defaults to ' \\')
-function toggle_markdown_line_break(break_str_to_add)
+function M.toggle_markdown_line_break(break_str_to_add)
   local start_line, end_line = get_visual_selection_range()
   if not start_line then return end -- Error handled in helper
 
@@ -77,11 +80,11 @@ function toggle_markdown_line_break(break_str_to_add)
 
   local message = ""
   if needs_removal then
-    markdown_remove_line_breaks(start_line, end_line)
+    M.markdown_remove_line_breaks(start_line, end_line)
     message = "Removed Markdown line breaks and trailing whitespace."
   else
     -- Use the provided break string or the default (' \\') within add function
-    markdown_add_line_breaks(start_line, end_line, break_str_to_add)
+    M.markdown_add_line_breaks(start_line, end_line, break_str_to_add)
     local added_break = break_str_to_add or ' \\'
     message = string.format("Added Markdown line break ('%s').", added_break)
   end
@@ -110,3 +113,5 @@ vim.keymap.set('v', '<Leader>mb', '<Cmd>lua toggle_markdown_line_break()<CR>', {
 -- })
 
 print("Markdown line break toggle mapping(s) loaded.")
+
+return M
