@@ -31,7 +31,7 @@ return {
   'srackham/markdown-blocks.nvim',
   version = '*', -- Install latest tagged version
   config = function()
-    local mb = require('markdown-blocks.nvim')
+    local mb = require('markdown-blocks')
     vim.keymap.set({ 'n', 'v' }, '<Leader>mb', mb.break_block,
       { noremap = true, silent = true, desc = "Break/unbreak the paragraph/selection at the cursor" })
     vim.keymap.set({ 'n', 'v' }, '<Leader>mq', mb.quote_block,
@@ -50,7 +50,6 @@ return {
       { silent = true, noremap = true, desc = "Renumber numbered lines" })
   end,
 }
-
 ```
 
 2. Restart Neovim. LazyVim will detect the new plugin file and install it from Github.
@@ -105,7 +104,6 @@ In normal mode block functions are applied to the paragraph at the cursor, in vi
 
 ## Todo
 
-- Do not collapse indents when block quoting.
 - Write tests (use the digraph-picker.nvim tests as a model).
 
 <!--
