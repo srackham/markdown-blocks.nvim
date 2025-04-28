@@ -252,10 +252,10 @@ end
 --- Otherwise, it prepends '> ' to every line in the block.
 function M.quote_block()
   map_block(function(lines)
-    if lines[1]:match('^>%s') then
-      -- If the first line starts with '> ', remove it from this and from any subsequent lines
+    if lines[1]:match('^>') then
+      -- If the first line starts with '>', remove it from this and from any subsequent lines
       for i, line in ipairs(lines) do
-        lines[i] = line:gsub('^>%s', '') -- Remove '> '
+        lines[i] = line:gsub('^>%s?', '')
       end
     else
       -- If the first line does not start with '>', prepend '> ' to every line
