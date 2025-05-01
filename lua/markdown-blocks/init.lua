@@ -52,12 +52,13 @@ local function wrap_str(s, wrap_column)
   return result
 end
 
---- @diagnostic disable: undefined-doc-param
+--- @class WrapOptions
+--- @field column_number? number The wrap column number (defaults to 0).
+--- @field unwrap? boolean Unwrap instead of wrapping (defaults to false).
+
 --- Wraps/unwraps each paragraph in the lines array and returns the updated lines.
 --- @param lines string[] The lines to wrap/unwrap.
---- @param opts table Options table with fields:
---- @param opts.column_number number The wrap column number (defaults to 0).
---- @param opts.unwrap boolean Unwrap instead of wrapping (defaults to false).
+--- @param opts? WrapOptions
 --- @return string[] The wrapped/unwrapped lines.
 local function wrap_paragraphs(lines, opts)
   opts = opts or {}
