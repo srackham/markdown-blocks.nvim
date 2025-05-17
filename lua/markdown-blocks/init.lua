@@ -1,56 +1,7 @@
 --- Module initialisation
 local M = {}
 
---- Checks if the current Vim mode is Visual ('v' or 'V').
---- @return boolean true if in visual mode, false otherwise.
-local function is_visual_mode()
-  return vim.fn.mode() == 'v' or vim.fn.mode() == 'V'
-end
-
---- Prepends an indentation string to each line in a table of strings.
---- Modifies the input table `lines` in place.
---- @param lines table An array of strings representing lines of text.
---- @param indent string The string to prepend to each line.
-local function indent_lines(lines, indent)
-  for i, line in ipairs(lines) do
-    lines[i] = indent .. line
-  end
-end
-
---- Wraps a string `s` at a specified column width.
---- Respects word boundaries. Multiple whitespace characters are collapsed
---- into a single space between words. Effectively trims leading/trailing
---- whitespace from the input string during processing.
---- @param s string The string to wrap.
---- @param wrap_column number The maximum column width for the wrapped lines.
---- @return table An array of strings representing the wrapped lines.
-local function wrap_str(s, wrap_column)
-  local result = {} -- Array to store wrapped lines
-  local line = ''   -- Current line being built
-
-  -- Iterate through words in the string
-  for word in s:gmatch('%S+') do
-    -- Check if adding the word exceeds the column limit
-    if #line + #word + 1 > wrap_column then
-      table.insert(result, line) -- Save the current line
-      line = word                -- Start a new line with the current word
-    else
-      -- Add the word to the current line (with a space if needed)
-      if #line > 0 then
-        line = line .. ' ' .. word
-      else
-        line = word
-      end
-    end
-  end
-
-  -- Add any remaining text in the last line to the result
-  if #line > 0 then
-    table.insert(result, line)
-  end
-
-  return result
-end
+local utils = require("markdown-blocks.utils")
 
 --- @class WrapOptions
 --- @field column_number? number The wrap column number (defaults to 0).
@@ -81,10 +32,10 @@ local function wrap_paragraphs(lines, opts)
     else
       -- Split the text at the wrap column into an array of wrapped lines
       local indent = joined_text:match('^(%s*)')
-      wrapped_lines = wrap_str(joined_text, column_number - #indent)
+      wrapped_lines = utils.wrap_str(joined_text, column_number - #indent)
 
       -- Indent all lines with the same indent as the first line
-      indent_lines(wrapped_lines, indent)
+      utils.indent_lines(wrapped_lines, indent)
     end
 
     -- Append wrapped paragraph to result
@@ -107,122 +58,6 @@ local function wrap_paragraphs(lines, opts)
   return result
 end
 
---- Gets the lines spanned by the most recent visual selection.
---- Must be called while in visual mode or immediately after exiting it
---- (it exits visual mode itself to set the '< and '> marks).
---- Shows an error notification if not currently in visual mode.
---- @return table|nil lines An array of strings containing the selected lines, or nil on error.
---- @return number start_line The 1-based start line number of the selection, or 0 on error.
---- @return number end_line The 1-based end line number of the selection, or 0 on error.
-local function get_selected_lines()
-  if not is_visual_mode() then
-    vim.notify('This function must be executed in visual mode', vim.log.levels.ERROR)
-    return nil, 0, 0
-  end
-
-  -- Exit visual mode (synchronously) to set `<` and `>` marks.
-  vim.cmd('normal! ' .. vim.api.nvim_replace_termcodes('<Esc>', true, false, true))
-
-  -- Get the current buffer
-  local buf = vim.api.nvim_get_current_buf()
-
-  -- Get the start and end marks of the visual selection
-  local start_line = vim.api.nvim_buf_get_mark(buf, '<')[1] -- '<' is the start of the visual selection
-  local end_line = vim.api.nvim_buf_get_mark(buf, '>')[1]   -- '>' is the end of the visual selection
-
-  -- Get the lines in the selected range
-  local selected_lines = vim.api.nvim_buf_get_lines(buf, start_line - 1, end_line, false)
-
-  -- Return values in the new order: selected_lines, start_line, end_line
-  return selected_lines, start_line, end_line
-end
-
---- Gets the lines belonging to the paragraph under the cursor.
---- A paragraph is defined as consecutive non-blank lines surrounded by blank lines
---- or buffer boundaries. Shows an error if the cursor is currently on a blank line.
---- @return table|nil lines An array of strings containing the paragraph lines, or nil on error.
---- @return number start_line The 1-based start line number of the paragraph, or 0 on error.
---- @return number end_line The 1-based end line number of the paragraph, or 0 on error.
-local function get_paragraph()
-  -- Check we are not at a blank line
-  if vim.api.nvim_get_current_line():match('%S') == nil then
-    vim.notify("No paragraph found", vim.log.levels.ERROR)
-    return nil, 0, 0
-  end
-
-  -- Get the current paragraph's range
-  local start_line = vim.fn.search('^\\s*$', 'bW') + 1 -- Find the start line of the paragraph (1-based)
-  local end_line = vim.fn.search('^\\s*$', 'W') - 1    -- Find the last line of the paragraph (1-based)
-
-  -- NOTE: vim.fn.search returns 0 if a match is not found (start_line=1, end_line=-1).
-  if end_line == -1 then
-    end_line = vim.api.nvim_buf_line_count(0) -- Correct end_line
-  end
-
-
-  -- Get all lines in the paragraph
-  local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
-
-  return lines, start_line, end_line
-end
-
---- Replaces a range of lines in the current buffer with new lines.
---- Replaces the lines from `start_line` to `end_line` (inclusive, 1-based)
---- with the content of the `lines` table. Sets the cursor position to the
---- beginning of the last inserted line.
---- @param lines table An array of strings to insert.
---- @param start_line number The 1-based starting line number of the range to replace.
---- @param end_line number The 1-based ending line number of the range to replace.
-local function set_lines(lines, start_line, end_line)
-  vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
-  local cursor_line = start_line + #lines - 1
-  vim.api.nvim_win_set_cursor(0, { cursor_line, 0 })
-end
-
---- Checks if a given line number marks the end of a paragraph.
---- A line is considered the end of a paragraph if it's the last line
---- in the buffer or if the next line is blank.
---- @param line_number number The 1-based line number to check.
---- @return boolean true if the line is the end of a paragraph, false otherwise.
-local function is_end_of_paragraph(line_number)
-  local total_lines = vim.api.nvim_buf_line_count(0)
-
-  -- Case 1: Already at last line
-  if line_number == total_lines then
-    return true
-  end
-
-  -- Case 2: Check next line for blankness
-  local next_line = vim.api.nvim_buf_get_lines(
-    0,               -- current buffer
-    line_number,     -- 0-based start (next line in 1-based)
-    line_number + 1, -- 0-based end (exclusive)
-    false            -- strict indexing
-  )[1] or ''         -- handle missing lines gracefully
-  return next_line == ''
-end
-
---- Applies a mapping function to the current block (visual selection or paragraph).
---- Determines the block (visual selection if active, otherwise the paragraph
---- under the cursor). Retrieves the lines of the block. Calls `mapfn` with
---- the lines and an options table `{ end_of_paragraph = boolean }`.
---- If end_of_paragraph=true then the last line is the last line of a paragraph.
---- Replaces the original lines in the buffer with the lines returned by `mapfn`.
---- @param mapfn function The function to apply. It receives two parameters (lines, options) and must return a table of strings (the modified lines).
-local function map_block(mapfn)
-  local lines, start_line, end_line
-  if is_visual_mode() then
-    lines, start_line, end_line = get_selected_lines()
-  else
-    lines, start_line, end_line = get_paragraph()
-  end
-  if lines == nil then
-    return
-  end
-  local mapped_lines = mapfn(lines, { end_of_paragraph = is_end_of_paragraph(end_line) })
-  set_lines(mapped_lines, start_line, end_line)
-end
-
 --- Wraps the current block (visual selection or paragraph).
 --- Uses the specified `column_number` or the current cursor column if
 --- `column_number` is nil. Preserves indentation of the first line of
@@ -231,7 +66,7 @@ end
 function M.wrap_block(column_number)
   -- Get the cursor column for wrapping
   local col = column_number or vim.fn.col('.')
-  map_block(function(lines)
+  utils.map_block(function(lines)
     local wrapped_lines = wrap_paragraphs(lines, { column_number = col })
     return wrapped_lines
   end)
@@ -241,7 +76,7 @@ end
 --- Joins lines within each paragraph of the block into single lines,
 --- separated by spaces.
 function M.unwrap_block()
-  map_block(function(lines)
+  utils.map_block(function(lines)
     local joined_lines = wrap_paragraphs(lines, { unwrap = true })
     return joined_lines
   end)
@@ -252,7 +87,7 @@ end
 --- it removes the '> ' prefix from all lines that have it.
 --- Otherwise, it prepends '> ' to every line in the block.
 function M.quote_block()
-  map_block(function(lines)
+  utils.map_block(function(lines)
     if lines[1]:match('^>') then
       -- If the first line starts with '>', remove it from this and from any subsequent lines
       for i, line in ipairs(lines) do
@@ -302,7 +137,7 @@ end
 --- line immediately preceding a blank line. Ensures the very last line of
 --- a paragraph block does not end with ` \`.
 function M.break_block()
-  map_block(function(lines, opts)
+  utils.map_block(function(lines, opts)
     M.toggle_line_breaks(lines)
     -- Ensure the last line of a paragraph does not get a break
     if opts.end_of_paragraph then
@@ -379,7 +214,7 @@ end
 -- If the first line is numbered delete list item numbers from non-indented lines.
 -- If the first line is not numbered add/update list item numbers from non-indented lines.
 function M.number_block()
-  map_block(function(lines)
+  utils.map_block(function(lines)
     if lines[1]:match('^%s*%d+%.%s') then
       unnumber_lines(lines)
     else
@@ -393,7 +228,7 @@ end
 --- Affects the visual selection or the paragraph under the cursor.
 --- Respects indentation levels to handle nested lists correctly, using `renumber_lines`.
 function M.renumber_block()
-  map_block(function(lines)
+  utils.map_block(function(lines)
     renumber_lines(lines)
     return lines
   end)
