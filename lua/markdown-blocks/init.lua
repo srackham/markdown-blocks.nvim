@@ -247,4 +247,19 @@ function M.ruled_block()
   utils.move_cursor(-1, 0) -- Move cursor up 1 line so the ruler is rendered by render-markdown.nvim
 end
 
+function M.csv_to_markdown_table()
+  utils.map_block(function(lines)
+    local csv_str = table.concat(lines, '\n')
+    local md_str = utils.csv_to_markdown(csv_str)
+    local md_lines = {}
+    for line in md_str:gmatch('[^\n]+') do
+      table.insert(md_lines, line)
+    end
+    return md_lines
+  end)
+  -- Move cursor past the end of the table so it is rendered by render-markdown.nvim
+  -- Ignore past end of file error.
+  pcall(function() utils.move_cursor(2, 0) end)
+end
+
 return M
