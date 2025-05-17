@@ -234,4 +234,17 @@ function M.renumber_block()
   end)
 end
 
+--- Enclose block with Markdown ruler (`---`) lines.
+--- Rulers are preceeded by a blank line so they are not mistaken for Setext header underilines.
+function M.ruled_block()
+  utils.map_block(function(lines)
+    table.insert(lines, 1, "")
+    table.insert(lines, 2, "---")
+    table.insert(lines, "")
+    table.insert(lines, "---")
+    return lines
+  end)
+  utils.move_cursor(-1, 0) -- Move cursor up 1 line so the ruler is rendered by render-markdown.nvim
+end
+
 return M

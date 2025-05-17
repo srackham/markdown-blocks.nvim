@@ -52,6 +52,15 @@ function M.wrap_str(s, wrap_column)
   return result
 end
 
+--- Move the cursor with relative row and column numbers.
+--- For example `move_cursor(-1, 0)` moves the cursor up one row.
+function M.move_cursor(row_delta, col_delta)
+  local pos = vim.api.nvim_win_get_cursor(0)
+  local new_row = pos[1] + row_delta
+  local new_col = pos[2] + col_delta
+  vim.api.nvim_win_set_cursor(0, { new_row, new_col })
+end
+
 --- Gets the lines spanned by the most recent visual selection.
 --- Must be called while in visual mode or immediately after exiting it
 --- (it exits visual mode itself to set the '< and '> marks).
