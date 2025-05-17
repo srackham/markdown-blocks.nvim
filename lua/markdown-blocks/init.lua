@@ -259,8 +259,7 @@ function M.csv_to_markdown_table()
     return md_lines
   end)
   -- Move cursor past the end of the table so it is fully rendered by render-markdown.nvim
-  -- Ignore past end of file error.
-  pcall(function() utils.move_cursor(2, 0) end)
+  utils.move_cursor(2, 0)
 end
 
 return M
