@@ -259,4 +259,37 @@ function M.csv_to_markdown(csv)
   return markdown
 end
 
+--- Convert a Markdown table string to CSV.
+-- @param Markdown: The Markdown table as a string.
+-- @return string: The resulting CSV as a string.
+function M.markdown_to_csv(md)
+  local csv_lines = {}
+  local lines = {}
+  -- Split the input into lines
+  for line in md:gmatch("[^\r\n]+") do
+    table.insert(lines, line)
+  end
+  -- Process each relevant line
+  for i, line in ipairs(lines) do
+    -- Skip the separator (second line)
+    if i ~= 2 then
+      -- Remove leading/trailing pipes and whitespace
+      line = line:gsub("^%s*|", ""):gsub("|%s*$", "")
+      -- Split by pipes
+      local cells = {}
+      for cell in line:gmatch("[^|]+") do
+        -- Trim whitespace from cell
+        cell = cell:match("^%s*(.-)%s*$")
+        -- Escape double quotes and wrap in double quotes
+        cell = '"' .. cell:gsub('"', '""') .. '"'
+        table.insert(cells, cell)
+      end
+      -- Concatenate cells with commas
+      table.insert(csv_lines, table.concat(cells, ","))
+    end
+  end
+  -- Join lines with newlines
+  return table.concat(csv_lines, "\n")
+end
+
 return M

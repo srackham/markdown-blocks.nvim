@@ -262,4 +262,17 @@ function M.csv_to_markdown_table()
   utils.move_cursor(2, 0)
 end
 
+--- Convert CSV paragraph/selection to a Markdown table.
+function M.markdown_table_to_csv()
+  utils.map_block(function(lines)
+    local md_str = table.concat(lines, '\n')
+    local csv_str = utils.markdown_to_csv(md_str)
+    local csv_lines = {}
+    for line in csv_str:gmatch('[^\n]+') do
+      table.insert(csv_lines, line)
+    end
+    return csv_lines
+  end)
+end
+
 return M
