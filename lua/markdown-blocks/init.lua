@@ -252,6 +252,8 @@ function M.csv_to_markdown_table()
   utils.map_block(function(lines)
     local csv_str = table.concat(lines, '\n')
     local md_str = utils.csv_to_markdown(csv_str)
+    vim.fn.setreg('+', md_str)
+    vim.fn.setreg('"', md_str)
     local md_lines = {}
     for line in md_str:gmatch('[^\n]+') do
       table.insert(md_lines, line)
@@ -267,6 +269,8 @@ function M.markdown_table_to_csv()
   utils.map_block(function(lines)
     local md_str = table.concat(lines, '\n')
     local csv_str = utils.markdown_to_csv(md_str)
+    vim.fn.setreg('+', csv_str)
+    vim.fn.setreg('"', csv_str)
     local csv_lines = {}
     for line in csv_str:gmatch('[^\n]+') do
       table.insert(csv_lines, line)
