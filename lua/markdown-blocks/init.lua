@@ -234,14 +234,25 @@ function M.renumber_block()
   end)
 end
 
---- Enclose block with Markdown ruler (`___`) lines.
-function M.ruled_block()
+--- Enclose block with start and end delimiter lines.
+function M.delimit_block(start_delimiter, end_delimiter)
   utils.map_block(function(lines)
-    table.insert(lines, 1, '___')
-    table.insert(lines, '___')
+    table.insert(lines, 1, start_delimiter)
+    table.insert(lines, end_delimiter)
     return lines
   end)
-  utils.move_cursor(-1, 0) -- Move cursor up 1 line so the ruler is fully rendered by render-markdown.nvim
+  utils.move_cursor(-1, 0) -- Move cursor up 1 line so the delimiter is fully rendered by render-markdown.nvim
+end
+
+--- Enclose block with Markdown ruler (`___`) lines.
+function M.ruled_block()
+  M.delimit_block('___', '___')
+end
+
+--- Enclose block with code block fences and a language code.
+function M.code_block(lang)
+  lang = lang or ''
+  M.delimit_block('```' .. lang, '```')
 end
 
 --- Convert CSV paragraph/selection to a Markdown table.
