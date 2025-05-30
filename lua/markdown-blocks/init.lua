@@ -96,25 +96,45 @@ function M.unwrap_block()
   end)
 end
 
+--- Toggles a prefix on each line in a block of text.
+-- If the first line matches the given pattern, removes the pattern from all lines.
+-- Otherwise, prepends the given prefix to all lines, optionally skipping blank lines.
+-- @param pattern string: Lua pattern to match at the start of each line.
+-- @param prefix string: Prefix to prepend to each line if the pattern is not matched.
+-- @param opts table|nil: Optional table of options.
+--   - skip_blank_lines (boolean): If true, blank lines will not have the prefix added. Default is false.
+local function toggle_line_prefix(pattern, prefix, opts)
+  opts = opts or {}
+  utils.map_block(function(lines)
+    if lines[1]:match(pattern) then
+      for i, line in ipairs(lines) do
+        lines[i] = line:gsub(pattern, '')
+      end
+    else
+      for i, line in ipairs(lines) do
+        if line == "" and opts.skip_blank_lines then
+          -- Skip blank lines
+        else
+          lines[i] = prefix .. line
+        end
+      end
+    end
+    return lines
+  end)
+end
+
 --- Toggles quoting (prefix '> ') for the current block (visual selection or paragraph).
 --- If the first line of the block starts with '> ' then
 --- it removes the '> ' prefix from all lines that have it.
 --- Otherwise, it prepends '> ' to every line in the block.
 function M.quote_block()
-  utils.map_block(function(lines)
-    if lines[1]:match('^>') then
-      -- If the first line starts with '>', remove it from this and from any subsequent lines
-      for i, line in ipairs(lines) do
-        lines[i] = line:gsub('^>%s?', '')
-      end
-    else
-      -- If the first line does not start with '>', prepend '> ' to every line
-      for i, line in ipairs(lines) do
-        lines[i] = '> ' .. line
-      end
-    end
-    return lines
-  end)
+  toggle_line_prefix('^>%s?', '> ')
+end
+
+--- Converts the current block into a markdown-style list.
+-- Prepends "- " to each non-blank line, or removes it if already present.
+function M.list_block()
+  toggle_line_prefix('^-%s+', '- ', { skip_blank_lines = true })
 end
 
 --- Toggles trailing backslash line continuation markers (` \`) on lines in a table.
