@@ -3,6 +3,20 @@ local M = {}
 
 local utils = require("markdown-blocks.utils")
 
+--- Join an array of strings with a single space separator.
+--- Multiple spaces at the join are squeezed into a single space characer.
+local function join_with_single_space(lines)
+  local result = {}
+  for _, s in ipairs(lines) do
+    -- Remove leading/trailing spaces and squeeze internal multiple spaces
+    local cleaned = s:match("^%s*(.-)%s*$"):gsub("%s+", " ")
+    if cleaned ~= "" then
+      table.insert(result, cleaned)
+    end
+  end
+  return table.concat(result, " ")
+end
+
 --- @class WrapOptions
 --- @field column_number? number The wrap column number (defaults to 0).
 --- @field unwrap? boolean Unwrap instead of wrapping (defaults to false).
@@ -25,7 +39,7 @@ local function wrap_paragraphs(lines, opts)
     end
 
     -- Join all lines into a single string
-    local joined_text = table.concat(paragraph, ' ')
+    local joined_text = join_with_single_space(lines)
     local wrapped_lines
     if unwrap then
       wrapped_lines = { joined_text }
