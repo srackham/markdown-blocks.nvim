@@ -180,10 +180,6 @@ function M.map_block(mapfn)
   M.set_lines(mapped_lines, start_line, end_line)
 end
 
---- Parse a CSV line into fields, handling optional double-quoted fields.
--- Handles commas and escaped quotes inside quoted fields according to standard CSV rules.
--- @param line string: The CSV line to parse.
--- @return table: An array of parsed fields as strings.
 function M.parse_csv_line(line)
   local res = {}
   local i = 1
@@ -198,7 +194,7 @@ function M.parse_csv_line(line)
         c = line:sub(i, i)
         if c == '"' then
           if line:sub(i + 1, i + 1) == '"' then
-            -- Escaped quote
+            -- Escaped quote ("")
             field = field .. '"'
             i = i + 2
           else
@@ -211,8 +207,12 @@ function M.parse_csv_line(line)
           i = i + 1
         end
       end
-      -- Skip comma after quoted field, if present
-      if line:sub(i, i) == ',' then
+      -- Skip optional whitespace and comma after quoted field
+      while i <= len and line:sub(i, i):match("[%s,]") do
+        if line:sub(i, i) == ',' then
+          i = i + 1
+          break
+        end
         i = i + 1
       end
     else
