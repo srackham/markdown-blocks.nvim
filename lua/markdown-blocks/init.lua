@@ -289,6 +289,12 @@ function M.code_block(lang)
   M.delimit_block('```' .. lang, '```')
 end
 
+--- Enclose block with HTML blockquote
+function M.blockquote_block(lang)
+  lang = lang or ''
+  M.delimit_block('<blockquote>' .. lang, '</blockquote>')
+end
+
 --- Convert CSV paragraph/selection to a Markdown table.
 function M.csv_to_markdown_table()
   utils.map_block(function(lines)
