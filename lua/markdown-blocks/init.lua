@@ -304,11 +304,21 @@ function M.renumber_block()
   end)
 end
 
---- Enclose block with start and end delimiter lines.
+--- Toggle block with start and end delimiter lines.
 function M.delimit_block(start_delimiter, end_delimiter)
   utils.map_block(function(lines)
-    table.insert(lines, 1, start_delimiter)
-    table.insert(lines, end_delimiter)
+    if lines[1] == start_delimiter then
+      -- Remove start delimiter
+      table.remove(lines, 1)
+      -- Only remove end delimiter if we removed the start
+      if lines[#lines] == end_delimiter then
+        table.remove(lines, #lines)
+      end
+    else
+      -- Insert delimiters
+      table.insert(lines, 1, start_delimiter)
+      table.insert(lines, end_delimiter)
+    end
     return lines
   end)
   utils.move_cursor(-1, 0) -- Move cursor up 1 line so the delimiter is fully rendered by render-markdown.nvim
