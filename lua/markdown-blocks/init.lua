@@ -3,32 +3,54 @@ local M = {}
 
 local utils = require("markdown-blocks.utils")
 
---- Join an array of strings with a single space separator.
---- Multiple spaces at the join are squeezed into a single space characer.
-local function join_with_single_space(lines)
-  local result = {}
-  for _, s in ipairs(lines) do
-    -- Remove leading/trailing spaces and squeeze internal multiple spaces
-    local cleaned = s:match("^%s*(.-)%s*$"):gsub("%s+", " ")
-    if cleaned ~= "" then
-      table.insert(result, cleaned)
+-- Helper to normalize indent: tabs as 4 spaces, other whitespace as 1 space
+local function normalize_indent(ws)
+  local indent = ""
+  for c in ws:gmatch(".") do
+    if c == "\t" then
+      indent = indent .. "    "
+    elseif c:match("%s") then
+      indent = indent .. " "
     end
   end
-  return table.concat(result, " ")
+  return indent
+end
+
+-- Helper to join lines with single space, dropping all but first indent
+local function join_with_single_space(lines, keep_first_indent)
+  if #lines == 0 then return "" end
+  local first_indent = lines[1]:match("^(%s*)") or ""
+  local norm_indent = normalize_indent(first_indent)
+  local texts = {}
+  for _, line in ipairs(lines) do
+    local text = line:gsub("^%s*", "")
+    table.insert(texts, text)
+  end
+  local joined = table.concat(texts, " ")
+  if keep_first_indent then
+    return norm_indent .. joined
+  else
+    return joined
+  end
 end
 
 --- @class WrapOptions
 --- @field column_number? number The wrap column number (defaults to 0).
 --- @field unwrap? boolean Unwrap instead of wrapping (defaults to false).
+--- @field retain_indent? boolean If true, retains the first line's indent for all wrapped lines, adjusting column width accordingly.
 
---- Wraps/unwraps each paragraph in the lines array and returns the updated lines.
---- @param lines string[] The lines to wrap/unwrap.
+--- Wraps or unwraps each paragraph in the lines array and returns the updated lines.
+--- If `retain_indent` is true, when wrapping, the indent of the first line (leading whitespace with tabs as 4 spaces, others as 1 space)
+--- is used for all wrapped lines, and its width is subtracted from `column_number` to keep right margins consistent.
+--- When unwrapping, only the first line's indent is retained in the result; other lines' indents are dropped and joined with a space.
+--- @param lines string[] The lines to wrap or unwrap.
 --- @param opts? WrapOptions
---- @return string[] The wrapped/unwrapped lines.
+--- @return string[] The wrapped or unwrapped lines.
 local function wrap_paragraphs(lines, opts)
   opts = opts or {}
   local column_number = opts.column_number or 0
   local unwrap = opts.unwrap or false
+  local retain_indent = opts.retain_indent or false
   local result = {}
   local paragraph = {}
 
@@ -38,30 +60,44 @@ local function wrap_paragraphs(lines, opts)
       return
     end
 
-    -- Join all lines into a single string
-    local joined_text = join_with_single_space(lines)
-    local wrapped_lines
     if unwrap then
-      wrapped_lines = { joined_text }
+      local unwrapped = join_with_single_space(paragraph, true)
+      table.insert(result, unwrapped)
     else
-      -- Split the text at the wrap column into an array of wrapped lines
-      local indent = joined_text:match('^(%s*)')
-      wrapped_lines = utils.wrap_str(joined_text, column_number - #indent)
-
-      -- Indent all lines with the same indent as the first line
-      utils.indent_lines(wrapped_lines, indent)
-    end
-
-    -- Append wrapped paragraph to result
-    for _, line in ipairs(wrapped_lines) do
-      table.insert(result, line)
+      -- Get and normalize indent from first line
+      local first_indent = paragraph[1]:match("^(%s*)") or ""
+      local norm_indent = retain_indent and normalize_indent(first_indent) or (first_indent or "")
+      -- Join lines to single string, removing leading whitespace
+      local joined_text = join_with_single_space(paragraph, false)
+      -- Adjust wrap column for indent width
+      local wrap_col = column_number
+      if retain_indent then
+        wrap_col = math.max(0, column_number - #norm_indent)
+      end
+      -- Wrap the text
+      local wrapped_lines = utils.wrap_str(joined_text, wrap_col)
+      -- Indent all lines with the normalized indent if retain_indent is true
+      if retain_indent then
+        for i, line in ipairs(wrapped_lines) do
+          wrapped_lines[i] = norm_indent .. line
+        end
+      else
+        -- Use original indent for first line only
+        if #wrapped_lines > 0 then
+          wrapped_lines[1] = (first_indent or "") .. wrapped_lines[1]
+        end
+      end
+      -- Append to result
+      for _, line in ipairs(wrapped_lines) do
+        table.insert(result, line)
+      end
     end
 
     paragraph = {}
   end
 
   for _, line in ipairs(lines) do
-    if line == '' then -- Paragraph break
+    if line == "" then -- Paragraph break
       wrap_paragraph()
       table.insert(result, line)
     else
@@ -81,7 +117,7 @@ function M.wrap_block(column_number)
   -- Get the cursor column for wrapping
   local col = column_number or vim.fn.col('.')
   utils.map_block(function(lines)
-    local wrapped_lines = wrap_paragraphs(lines, { column_number = col })
+    local wrapped_lines = wrap_paragraphs(lines, { column_number = col, retain_indent = true })
     return wrapped_lines
   end)
 end
@@ -91,7 +127,7 @@ end
 --- separated by spaces.
 function M.unwrap_block()
   utils.map_block(function(lines)
-    local joined_lines = wrap_paragraphs(lines, { unwrap = true })
+    local joined_lines = wrap_paragraphs(lines, { unwrap = true, retain_indent = true })
     return joined_lines
   end)
 end
