@@ -7,6 +7,13 @@ function M.is_visual_mode()
   return vim.fn.mode() == 'v' or vim.fn.mode() == 'V'
 end
 
+--- Function to append array a2 to a1.
+function M.append_array(a1, a2)
+  for _, v in ipairs(a2) do
+    table.insert(a1, v)
+  end
+end
+
 --- Prepends an indentation string to each line in a table of strings.
 --- Modifies the input table `lines` in place.
 --- @param lines table An array of strings representing lines of text.

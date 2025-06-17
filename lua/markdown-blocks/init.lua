@@ -48,36 +48,34 @@ end
 --- @return string[] The wrapped or unwrapped lines.
 local function wrap_paragraphs(lines, opts)
   opts = opts or {}
-  local column_number = opts.column_number or 0
-  local unwrap = opts.unwrap or false
-  local retain_indent = opts.retain_indent or false
-  local result = {}
-  local paragraph = {}
+  opts.unwrap = opts.unwrap or false
+  opts.retain_indent = opts.retain_indent or false
 
-  -- Wrap `paragraph` and append to `result`
-  local function wrap_paragraph()
+  -- Wrap/unwrap paragraph array and return the result array.
+  local function process_paragraph(paragraph)
     if #paragraph == 0 then
-      return
+      return {}
     end
 
-    if unwrap then
+    local result = {}
+    if opts.unwrap then
       local unwrapped = join_with_single_space(paragraph, true)
       table.insert(result, unwrapped)
     else
       -- Get and normalize indent from first line
       local first_indent = paragraph[1]:match("^(%s*)") or ""
-      local norm_indent = retain_indent and normalize_indent(first_indent) or (first_indent or "")
+      local norm_indent = opts.retain_indent and normalize_indent(first_indent) or (first_indent or "")
       -- Join lines to single string, removing leading whitespace
       local joined_text = join_with_single_space(paragraph, false)
       -- Adjust wrap column for indent width
-      local wrap_col = column_number
-      if retain_indent then
-        wrap_col = math.max(0, column_number - #norm_indent)
+      local wrap_col = opts.column_number or 0
+      if opts.retain_indent then
+        wrap_col = math.max(0, opts.column_number - #norm_indent)
       end
       -- Wrap the text
       local wrapped_lines = utils.wrap_str(joined_text, wrap_col)
       -- Indent all lines with the normalized indent if retain_indent is true
-      if retain_indent then
+      if opts.retain_indent then
         for i, line in ipairs(wrapped_lines) do
           wrapped_lines[i] = norm_indent .. line
         end
@@ -92,19 +90,22 @@ local function wrap_paragraphs(lines, opts)
         table.insert(result, line)
       end
     end
-
-    paragraph = {}
+    return result
   end
 
+  -- Process paragraph-by-paragraph from lines array
+  local result = {}
+  local paragraph = {}
   for _, line in ipairs(lines) do
-    if line == "" then -- Paragraph break
-      wrap_paragraph()
-      table.insert(result, line)
-    else
+    if line ~= "" then
       table.insert(paragraph, line)
+    else
+      utils.append_array(result, process_paragraph(paragraph))
+      table.insert(result, line) -- Insert the paragraph break
+      paragraph = {}
     end
   end
-  wrap_paragraph()
+  utils.append_array(result, process_paragraph(paragraph)) -- Last paragraph
   return result
 end
 
