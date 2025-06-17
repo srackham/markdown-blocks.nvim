@@ -323,23 +323,6 @@ function M.delimit_block(start_delimiter, end_delimiter)
   end)
 end
 
---- Enclose block with Markdown ruler (`___`) lines.
-function M.ruled_block()
-  M.delimit_block('___', '___')
-end
-
---- Enclose block with code block fences and a language code.
-function M.code_block(lang)
-  lang = lang or ''
-  M.delimit_block('```' .. lang, '```')
-end
-
---- Enclose block with HTML blockquote
-function M.blockquote_block(lang)
-  lang = lang or ''
-  M.delimit_block('<blockquote>' .. lang, '</blockquote>')
-end
-
 --- Convert CSV paragraph/selection to a Markdown table.
 function M.csv_to_markdown_table()
   utils.map_block(function(lines)
