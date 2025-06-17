@@ -178,6 +178,7 @@ function M.map_block(mapfn)
   end
   local mapped_lines = mapfn(lines, { end_of_paragraph = M.is_end_of_paragraph(end_line) })
   M.set_lines(mapped_lines, start_line, end_line)
+  M.move_cursor(1, 0) -- Move cursor down one to the line after the inserted block
 end
 
 function M.parse_csv_line(line)

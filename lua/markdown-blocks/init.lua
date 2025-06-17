@@ -321,7 +321,6 @@ function M.delimit_block(start_delimiter, end_delimiter)
     end
     return lines
   end)
-  utils.move_cursor(-1, 0) -- Move cursor up 1 line so the delimiter is fully rendered by render-markdown.nvim
 end
 
 --- Enclose block with Markdown ruler (`___`) lines.
