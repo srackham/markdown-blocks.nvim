@@ -294,20 +294,44 @@ function M.renumber_list()
   end)
 end
 
---- Toggle block with start and end delimiter lines.
+--- Toggle block with start and end delimiter lines, handling blank lines for Markdown HTML blocks.
 function M.delimiters_toggle(start_delimiter, end_delimiter)
   utils.map_block(function(lines)
-    if lines[1] == start_delimiter then
-      -- Remove start delimiter
-      table.remove(lines, 1)
-      -- Only remove end delimiter if we removed the start
-      if lines[#lines] == end_delimiter then
+    -- Detect and strip newline suffix/prefix
+    local start_has_nl = start_delimiter:sub(-1) == "\n"
+    local end_has_nl = end_delimiter:sub(1, 1) == "\n"
+    local clean_start = start_has_nl and start_delimiter:sub(1, -2) or start_delimiter
+    local clean_end = end_has_nl and end_delimiter:sub(2) or end_delimiter
+
+    -- Check for existing delimiters
+    local start_idx = 1
+    local end_idx = #lines
+    local has_start = lines[start_idx] == clean_start
+    local has_end = lines[end_idx] == clean_end
+
+    -- Remove delimiters and blank lines
+    if has_start then
+      table.remove(lines, start_idx)
+      if start_has_nl and lines[start_idx] == "" then
+        table.remove(lines, start_idx)
+      end
+      if has_end then
+        if end_has_nl and lines[#lines - 1] == "" then
+          table.remove(lines, #lines - 1)
+        end
         table.remove(lines, #lines)
       end
     else
-      -- Insert delimiters
-      table.insert(lines, 1, start_delimiter)
-      table.insert(lines, end_delimiter)
+      -- Insert start delimiter and blank line if needed
+      table.insert(lines, 1, clean_start)
+      if start_has_nl then
+        table.insert(lines, 2, "")
+      end
+      -- Insert end delimiter and blank line if needed
+      if end_has_nl then
+        table.insert(lines, #lines + 1, "")
+      end
+      table.insert(lines, clean_end)
     end
     return lines
   end)
