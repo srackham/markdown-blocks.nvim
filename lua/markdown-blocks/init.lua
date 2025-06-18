@@ -164,13 +164,13 @@ end
 --- If the first line of the block starts with '> ' then
 --- it removes the '> ' prefix from all lines that have it.
 --- Otherwise, it prepends '> ' to every line in the block.
-function M.quote_block()
+function M.quotes_toggle()
   toggle_line_prefix('^>%s?', '> ')
 end
 
 --- Converts the current block into a markdown-style list.
 -- Prepends "- " to each non-blank line, or removes it if already present.
-function M.list_block()
+function M.bullet_list_toggle()
   toggle_line_prefix('^-%s+', '- ', { skip_blank_lines = true })
 end
 
@@ -207,7 +207,7 @@ end
 --- Does not add a marker to blank lines, lines already ending in `\`, or the
 --- line immediately preceding a blank line. Ensures the very last line of
 --- a paragraph block does not end with ` \`.
-function M.break_block()
+function M.line_breaks_toggle()
   utils.map_block(function(lines, opts)
     M.toggle_line_breaks(lines)
     -- Ensure the last line of a paragraph does not get a break
@@ -284,7 +284,7 @@ end
 -- Number/unnumber non-indented lines in the current block.
 -- If the first line is numbered delete list item numbers from non-indented lines.
 -- If the first line is not numbered add/update list item numbers from non-indented lines.
-function M.number_block()
+function M.numbered_list_toggle()
   utils.map_block(function(lines)
     if lines[1]:match('^%s*%d+%.%s') then
       unnumber_lines(lines)
@@ -298,7 +298,7 @@ end
 --- Sequentially renumbers existing ordered list items (`N. `) in the current block.
 --- Affects the visual selection or the paragraph under the cursor.
 --- Respects indentation levels to handle nested lists correctly, using `renumber_lines`.
-function M.renumber_block()
+function M.renumber_list()
   utils.map_block(function(lines)
     renumber_lines(lines)
     return lines
@@ -306,7 +306,7 @@ function M.renumber_block()
 end
 
 --- Toggle block with start and end delimiter lines.
-function M.delimit_block(start_delimiter, end_delimiter)
+function M.delimiters_toggle(start_delimiter, end_delimiter)
   utils.map_block(function(lines)
     if lines[1] == start_delimiter then
       -- Remove start delimiter
