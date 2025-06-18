@@ -174,34 +174,6 @@ function M.bullet_list_toggle()
   toggle_line_prefix('^-%s+', '- ', { skip_blank_lines = true })
 end
 
---- Toggles trailing backslash line continuation markers (` \`) on lines in a table.
---- If the first line ends with ` \` (ignoring trailing whitespace), it removes
---- the ` \` from all lines ending with it.
---- Otherwise, it appends ` \` to lines, skipping blank lines, lines already
---- ending in `\`, and lines immediately preceding a blank line.
---- Modifies the input table `lines` in place.
---- @param lines table An array of strings representing lines of text.
-function M.toggle_line_breaks(lines)
-  -- Check if the first line ends with '\' preceded by zero or more whitespace characters
-  if lines[1]:match('%s*\\$') then
-    -- If the first line ends with '\', remove it and the whitespace on this and all subsequent lines
-    for i, line in ipairs(lines) do
-      if line:match('%s*\\$') then
-        lines[i] = line:gsub('%s*\\$', '') -- Remove '\' and preceding whitespace
-      end
-    end
-  else
-    -- The first line does not end with '\' so append ' \' line breaks skipping blank lines and lines preceeding blank lines
-    for i, line in ipairs(lines) do
-      -- Don't break blank lines or lines followed by a blank line or lines that are already broken
-      local skip = line == '' or (i < #lines and lines[i + 1] == '') or line:match('\\$')
-      if not skip then
-        lines[i] = line .. ' \\'
-      end
-    end
-  end
-end
-
 --- Toggles line continuation markers (` \`) for the current block (visual selection or paragraph).
 --- Adds or removes trailing ` \` based on the state of the first line.
 --- Does not add a marker to blank lines, lines already ending in `\`, or the
@@ -209,7 +181,24 @@ end
 --- a paragraph block does not end with ` \`.
 function M.line_breaks_toggle()
   utils.map_block(function(lines, opts)
-    M.toggle_line_breaks(lines)
+    -- Check if the first line ends with '\' preceded by zero or more whitespace characters
+    if lines[1]:match('%s*\\$') then
+      -- If the first line ends with '\', remove it and the whitespace on this and all subsequent lines
+      for i, line in ipairs(lines) do
+        if line:match('%s*\\$') then
+          lines[i] = line:gsub('%s*\\$', '') -- Remove '\' and preceding whitespace
+        end
+      end
+    else
+      -- The first line does not end with '\' so append ' \' line breaks skipping blank lines and lines preceeding blank lines
+      for i, line in ipairs(lines) do
+        -- Don't break blank lines or lines followed by a blank line or lines that are already broken
+        local skip = line == '' or (i < #lines and lines[i + 1] == '') or line:match('\\$')
+        if not skip then
+          lines[i] = line .. ' \\'
+        end
+      end
+    end
     -- Ensure the last line of a paragraph does not get a break
     if opts.end_of_paragraph then
       lines[#lines] = lines[#lines]:gsub('%s*\\$', '') -- Remove '\' and any preceding whitespace from the last element
