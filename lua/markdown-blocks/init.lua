@@ -294,7 +294,24 @@ function M.renumber_list()
   end)
 end
 
---- Toggle block with start and end delimiter lines, handling blank lines for Markdown HTML blocks.
+--- Toggles block delimiters with optional blank lines for Markdown HTML block compatibility.
+--
+-- Inserts or removes start and end delimiters around a selected block of lines. If the start delimiter
+-- ends with a newline (`\n`), a blank line is inserted after it (and the newline is stripped). If the end
+-- delimiter starts with a newline (`\n`), a blank line is inserted before it (and the newline is stripped).
+-- When delimiters are removed, any corresponding blank lines after the start delimiter and before the end
+-- delimiter are also removed.
+--
+-- This ensures proper separation of HTML block elements in Markdown, so they are recognized as raw HTML
+-- blocks.
+--
+-- @param start_delimiter string: The start delimiter to insert or remove. May have a trailing `\n` to
+--                                indicate a blank line should follow.
+-- @param end_delimiter string: The end delimiter to insert or remove. May have a leading `\n` to
+--                              indicate a blank line should precede.
+-- @usage
+--   delimiters_toggle("<div>\n", "\n</div>")
+--   delimiters_toggle("<!--", "-->")
 function M.delimiters_toggle(start_delimiter, end_delimiter)
   utils.map_block(function(lines)
     -- Detect and strip newline suffix/prefix
