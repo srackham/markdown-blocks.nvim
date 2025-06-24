@@ -63,7 +63,7 @@ The plugin implements Lua functions to break, quote, number, wrap/unwrap and del
 | ---------------------- | --------------------------------------------- |
 | `bullet_list_toggle`   | Toggle unordered list bullets                 |
 | `csv_table_toggle`     | Toggle between Markdown table and CSV         |
-| `csv_to_table`         | Convert CSV to Markdown table                 |
+| `csv_to_table` §       | Convert CSV to Markdown table                 |
 | `delimiters_toggle` †  | Toggle block delimiter lines                  |
 | `line_breaks_toggle`   | Toggle line line break suffixes (`\`)         |
 | `numbered_list_toggle` | Toggle ordered list line numbers              |
@@ -74,7 +74,8 @@ The plugin implements Lua functions to break, quote, number, wrap/unwrap and del
 | `wrap_block` ‡         | Wrap lines                                    |
 
 † Passed line delimiter arguments. \
-‡ Passed a wrap column number argument.
+‡ Passed a wrap column number argument. \
+§ The resulting CSV or Markdown table is also copied to the clipboard.
 
 ### Example LazyVim Configuration
 
