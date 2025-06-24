@@ -354,35 +354,62 @@ function M.delimiters_toggle(start_delimiter, end_delimiter)
   end)
 end
 
---- Convert CSV paragraph/selection to a Markdown table.
-function M.csv_to_markdown_table()
-  utils.map_block(function(lines)
-    local csv_str = table.concat(lines, '\n')
-    local md_str = utils.csv_to_markdown(csv_str)
-    vim.fn.setreg('+', md_str)
-    vim.fn.setreg('"', md_str)
-    local md_lines = {}
-    for line in md_str:gmatch('[^\n]+') do
-      table.insert(md_lines, line)
-    end
-    return md_lines
-  end)
-  -- Move cursor past the end of the table so it is fully rendered by render-markdown.nvim
-  utils.move_cursor(2, 0)
+--- Converts a CSV paragraph or selection to a Markdown table.
+--
+-- Takes a list of strings representing lines of CSV data, converts them to a Markdown table,
+-- copies the result to both the system clipboard and the unnamed register,
+-- and returns the Markdown table as a list of strings (one per line).
+--
+-- @param lines table A list of strings, each representing a line of CSV input.
+-- @return table A list of strings, each representing a line of the resulting Markdown table.
+function M.csv_to_table(lines)
+  local csv_str = table.concat(lines, '\n')
+  local md_str = utils.csv_to_markdown(csv_str)
+  vim.fn.setreg('+', md_str)
+  vim.fn.setreg('"', md_str)
+  local md_lines = {}
+  for line in md_str:gmatch('[^\n]+') do
+    table.insert(md_lines, line)
+  end
+  return md_lines
 end
 
---- Convert CSV paragraph/selection to a Markdown table.
-function M.markdown_table_to_csv()
+--- Converts a Markdown table paragraph or selection to CSV.
+--
+-- Takes a list of strings representing lines of a Markdown table, converts them to CSV,
+-- copies the result to both the system clipboard and the unnamed register,
+-- and returns the CSV as a list of strings (one per line).
+--
+-- @param lines table A list of strings, each representing a line of Markdown table input.
+-- @return table A list of strings, each representing a line of the resulting CSV.
+function M.table_to_csv(lines)
+  local md_str = table.concat(lines, '\n')
+  local csv_str = utils.markdown_to_csv(md_str)
+  vim.fn.setreg('+', csv_str)
+  vim.fn.setreg('"', csv_str)
+  local csv_lines = {}
+  for line in csv_str:gmatch('[^\n]+') do
+    table.insert(csv_lines, line)
+  end
+  return csv_lines
+end
+
+--- Toggle between Markdown table and CSV formats in a text selection.
+--
+-- Detects whether the current selection is a Markdown table or CSV by inspecting the first line.
+-- If the selection is a Markdown table (line starts and ends with '|'), it converts it to CSV.
+-- Otherwise, it converts CSV to a Markdown table.
+-- The result is copied to the clipboard and unnamed register, and the cursor is moved past
+-- the end of the table to ensure full rendering by render-markdown.nvim.
+--
+-- @function csv_table_toggle
+function M.toggle_csv_to_table()
   utils.map_block(function(lines)
-    local md_str = table.concat(lines, '\n')
-    local csv_str = utils.markdown_to_csv(md_str)
-    vim.fn.setreg('+', csv_str)
-    vim.fn.setreg('"', csv_str)
-    local csv_lines = {}
-    for line in csv_str:gmatch('[^\n]+') do
-      table.insert(csv_lines, line)
+    if lines[1]:match("^|.*|$") then
+      return M.table_to_csv(lines)
+    else
+      return M.csv_to_table(lines)
     end
-    return csv_lines
   end)
 end
 
